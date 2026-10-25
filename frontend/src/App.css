@@ -24,11 +24,12 @@ body {
 }
 
 .workspace {
-  min-height: 100vh;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   padding: 24px 32px 16px;
   gap: 24px;
+  height: 100vh;
 }
 
 .workspace-header,
@@ -63,7 +64,7 @@ body {
 
 .visual-stage {
   flex: 1;
-  min-height: 320px;
+  min-height: 0;
   display: grid;
   place-items: center;
   border: 1px solid #292c37;
