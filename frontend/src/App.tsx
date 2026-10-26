@@ -1,6 +1,15 @@
 import './App.css'
 import {useEffect, useRef} from "react";
 
+type Particle = {
+  x: number;
+  y: number;
+  radius: number;
+  color: string;
+  speed: number;
+  direction: number;
+};
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -17,22 +26,55 @@ useEffect(() => {
   let animationFrameId: number = 0;
 
   function resizeCanvas() {
+    let scaleX = 1
+    let scaleY = 1
+    const currentWidth = canvasElement.width
+    const currentHeight = canvasElement.height
     const width = stageElement.clientWidth
     const height = stageElement.clientHeight
+    if (currentWidth !== 0 && currentHeight !== 0) {
+      scaleX = width / currentWidth
+      scaleY = height / currentHeight
+    }
+    for (const particle of particles) {
+      particle.x *= scaleX
+      particle.y *= scaleY
+    }
     if (canvasElement.width !== width) {
       canvasElement.width = width
     }
     if (canvasElement.height !== height) {
       canvasElement.height = height
     }
+    
+    draw()
   }
-  let x = 0;
+  let particles: Particle[] = []
+  function createParticles() {
+    const numParticles = Math.floor(Math.random() * 50 + 50)
+    particles = []
+    for (let i = 0; i < numParticles; i++) {
+      particles.push({
+        x: Math.random() * canvasElement.width,
+        y: Math.random() * canvasElement.height,
+        radius: Math.random() * 5 + 2,
+        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+        speed: Math.random() * 2 + 1,
+        direction: Math.random() * Math.PI * 2
+      })
+    }
+  }
   function draw() {
     drawingContext.clearRect(0, 0, canvasElement.width, canvasElement.height)
-    drawingContext.beginPath()
-    x += 1;
-    drawingContext.arc(x, canvasElement.height / 2, 40, 0, Math.PI * 2)
-    drawingContext.fill()
+    
+    particles.forEach(particle => {
+      particle.x += Math.cos(particle.direction) * particle.speed
+      particle.y += Math.sin(particle.direction) * particle.speed
+      drawingContext.beginPath()
+      drawingContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2)
+      drawingContext.fillStyle = particle.color
+      drawingContext.fill()
+    })
     animationFrameId = requestAnimationFrame(draw)
   }
 
@@ -40,6 +82,7 @@ useEffect(() => {
 
   observer.observe(stage)
   resizeCanvas()
+  createParticles()
   draw()
 
   return () => {
