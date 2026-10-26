@@ -1,5 +1,5 @@
 import './App.css'
-import {useEffect, useRef} from "react";
+import {useEffect, useRef, useState} from "react";
 
 type Particle = {
   x: number;
@@ -12,9 +12,15 @@ type Particle = {
 
 type BoundaryBehavior = 'bounce' | 'wrap' | 'remove';
 
+type InteractionInput = {
+  x: number;
+  y: number;
+  active: boolean;
+};
+
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 useEffect(() => {
   const canvas = canvasRef.current
   const stage = canvas?.parentElement
@@ -28,8 +34,26 @@ useEffect(() => {
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
-  let boundaryBehavior: BoundaryBehavior = 'remove';
+  const boundaryBehavior: BoundaryBehavior = 'remove';
 
+  const interactionInput: InteractionInput = {
+    x: 0,
+    y: 0,
+    active: false,
+  };
+  
+
+
+  function handleMouseMove(event: MouseEvent) {
+    const rect = canvasElement.getBoundingClientRect();
+    interactionInput.x = event.clientX - rect.left;
+    interactionInput.y = event.clientY - rect.top;
+    setMousePosition({
+      x: Math.round(interactionInput.x),
+      y: Math.round(interactionInput.y)
+    });
+  }
+  
   function resizeCanvas() {
     let scaleX = 1
     let scaleY = 1
@@ -143,6 +167,15 @@ useEffect(() => {
     animationFrameId = requestAnimationFrame(draw)
   }
 
+  canvasElement.addEventListener('mousemove', handleMouseMove);
+  canvasElement.addEventListener('mouseenter', handleMouseEnter);
+  canvasElement.addEventListener('mouseleave', handleMouseLeave);
+  function handleMouseEnter() {
+    interactionInput.active = true;
+  }
+  function handleMouseLeave() {
+    interactionInput.active = false;
+  }
   const observer = new ResizeObserver(resizeCanvas)
 
   observer.observe(stage)
@@ -150,8 +183,12 @@ useEffect(() => {
   resizeCanvas()
 
   return () => {
+    canvasElement.removeEventListener('mousemove', handleMouseMove);
+    canvasElement.removeEventListener('mouseenter', handleMouseEnter);
+    canvasElement.removeEventListener('mouseleave', handleMouseLeave);
     observer.disconnect()
     cancelAnimationFrame(animationFrameId)
+
   }
 }, [])
   return (
@@ -167,6 +204,7 @@ useEffect(() => {
 
       <footer className="workspace-footer">
         <span>Mode: Idle</span>
+        <span>Mouse position: {mousePosition.x}, {mousePosition.y}</span>
         <span>Hand tracking: Inactive</span>
       </footer>
     </main>
