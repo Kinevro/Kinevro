@@ -110,3 +110,9 @@ body {
     gap: 8px;
   }
 }
+
+.visual-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

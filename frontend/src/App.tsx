@@ -8,6 +8,8 @@ type Particle = {
   color: string;
   speed: number;
   direction: number;
+  vx: number;
+  vy: number;
 };
 
 type BoundaryBehavior = 'bounce' | 'wrap' | 'remove';
@@ -34,8 +36,8 @@ useEffect(() => {
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
-  const boundaryBehavior: BoundaryBehavior = 'remove';
-
+  const boundaryBehavior: BoundaryBehavior = 'wrap';
+  
   const interactionInput: InteractionInput = {
     x: 0,
     y: 0,
@@ -84,13 +86,17 @@ useEffect(() => {
     const numParticles = Math.floor(Math.random() * 50 + 65)
     particles = []
     for (let i = 0; i < numParticles; i++) {
+      const speed = Math.random() * 6 + 3
+      const direction = Math.random() * Math.PI * 2
       particles.push({
         x: Math.random() * canvasElement.width,
         y: Math.random() * canvasElement.height,
         radius: Math.random() * 5 + 1,
         color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-        speed: Math.random() * 6 + 3,
-        direction: Math.random() * Math.PI * 2
+        speed: speed,
+        direction: direction,
+        vx: Math.cos(direction) * speed,
+        vy: Math.sin(direction) * speed,
       })
     }
   }
@@ -153,12 +159,22 @@ useEffect(() => {
 
     particles = particles.filter(particle => {
       particle.direction += (Math.random() - 0.5) * 0.40  * frameScale
-      particle.x += Math.cos(particle.direction) * particle.speed * frameScale
-      particle.y += Math.sin(particle.direction) * particle.speed * frameScale
+      particle.x += particle.vx * frameScale
+      particle.y += particle.vy * frameScale
       return handleBoundary(particle)
     })
 
     particles.forEach(particle => {
+      const dx = interactionInput.x - particle.x
+      const dy = interactionInput.y - particle.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      const interactionRadius = 200
+      if (interactionInput.active && distance < interactionRadius) {
+        const force = (interactionRadius - distance) / interactionRadius
+        const angle = Math.atan2(dy, dx)
+        particle.vx -= Math.cos(angle) * force * 5
+        particle.vy -= Math.sin(angle) * force * 5
+      }
       drawingContext.beginPath()
       drawingContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2)
       drawingContext.fillStyle = particle.color
