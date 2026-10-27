@@ -38,13 +38,13 @@ useEffect(() => {
   let lastTimestamp: number = 0;
   const boundaryBehavior: BoundaryBehavior = 'wrap';
   
+  const maxSpeed = 12;
+
   const interactionInput: InteractionInput = {
     x: 0,
     y: 0,
     active: false,
   };
-  
-
 
   function handleMouseMove(event: MouseEvent) {
     const rect = canvasElement.getBoundingClientRect();
@@ -83,7 +83,7 @@ useEffect(() => {
   }
   let particles: Particle[] = []
   function createParticles() {
-    const numParticles = Math.floor(Math.random() * 50 + 65)
+    const numParticles = Math.floor(Math.random() * 50 + 100)
     particles = []
     for (let i = 0; i < numParticles; i++) {
       const speed = Math.random() * 6 + 3
@@ -144,6 +144,30 @@ useEffect(() => {
     }
   }
 
+  function updateParticles(particle: Particle, frameScale: number, interactionRadius: number) {
+    particle.direction += (Math.random() - 0.5) * 0.40 * frameScale;
+    particle.vx += (Math.cos(particle.direction) * particle.speed - particle.vx) * 0.05 * frameScale;
+    particle.vy += (Math.sin(particle.direction) * particle.speed - particle.vy) * 0.05 * frameScale;
+    const dx = interactionInput.x - particle.x
+      const dy = interactionInput.y - particle.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      if (interactionInput.active && distance < interactionRadius) {
+        const force = (interactionRadius - distance) / interactionRadius
+        const angle = Math.atan2(dy, dx)
+        particle.vx -= Math.cos(angle) * force * 5
+        particle.vy -= Math.sin(angle) * force * 5
+      }
+    const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+    if (currentSpeed > maxSpeed) {
+      const speedScale = maxSpeed / currentSpeed;
+      particle.vx *= speedScale;
+      particle.vy *= speedScale;
+    }
+    particle.x += particle.vx * frameScale
+    particle.y += particle.vy * frameScale
+
+  }
+
   function draw(timestamp: number = 0) {
     animationFrameId = 0
     let deltaTime: number
@@ -156,25 +180,18 @@ useEffect(() => {
     const frameScale = deltaTime * 60
     drawingContext.clearRect(0, 0, canvasElement.width, canvasElement.height)
     lastTimestamp = timestamp
+    
+    const interactionRadius = 0.33 * Math.min(
+      canvasElement.width,
+      canvasElement.height
+    );
 
     particles = particles.filter(particle => {
-      particle.direction += (Math.random() - 0.5) * 0.40  * frameScale
-      particle.x += particle.vx * frameScale
-      particle.y += particle.vy * frameScale
+      updateParticles(particle, frameScale, interactionRadius)
       return handleBoundary(particle)
     })
 
     particles.forEach(particle => {
-      const dx = interactionInput.x - particle.x
-      const dy = interactionInput.y - particle.y
-      const distance = Math.sqrt(dx * dx + dy * dy)
-      const interactionRadius = 200
-      if (interactionInput.active && distance < interactionRadius) {
-        const force = (interactionRadius - distance) / interactionRadius
-        const angle = Math.atan2(dy, dx)
-        particle.vx -= Math.cos(angle) * force * 5
-        particle.vy -= Math.sin(angle) * force * 5
-      }
       drawingContext.beginPath()
       drawingContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2)
       drawingContext.fillStyle = particle.color
