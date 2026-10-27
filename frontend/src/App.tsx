@@ -7,7 +7,7 @@ type Particle = {
   radius: number;
   color: string;
   speed: number;
-  direction: number;
+  targetDirection: number;
   vx: number;
   vy: number;
 };
@@ -36,7 +36,7 @@ useEffect(() => {
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
-  const boundaryBehavior: BoundaryBehavior = 'wrap';
+  const boundaryBehavior: BoundaryBehavior = 'bounce';
   
   const maxSpeed = 12;
 
@@ -87,16 +87,16 @@ useEffect(() => {
     particles = []
     for (let i = 0; i < numParticles; i++) {
       const speed = Math.random() * 6 + 3
-      const direction = Math.random() * Math.PI * 2
+      const targetDirection = Math.random() * Math.PI * 2
       particles.push({
         x: Math.random() * canvasElement.width,
         y: Math.random() * canvasElement.height,
         radius: Math.random() * 5 + 1,
         color: `hsl(${Math.random() * 360}, 70%, 60%)`,
         speed: speed,
-        direction: direction,
-        vx: Math.cos(direction) * speed,
-        vy: Math.sin(direction) * speed,
+        targetDirection: targetDirection,
+        vx: Math.cos(targetDirection) * speed,
+        vy: Math.sin(targetDirection) * speed,
       })
     }
   }
@@ -106,17 +106,21 @@ useEffect(() => {
       case 'bounce':
         if (particle.x - particle.radius < 0) {
           particle.x = particle.radius;
-          particle.direction = Math.PI - particle.direction;
+          particle.vx = -particle.vx;
+          particle.targetDirection = Math.PI - particle.targetDirection;
         } else if (particle.x + particle.radius > canvasElement.width) {
           particle.x = canvasElement.width - particle.radius;
-          particle.direction = Math.PI - particle.direction;
+          particle.vx = -particle.vx;
+          particle.targetDirection = Math.PI - particle.targetDirection;
         }
         if (particle.y - particle.radius < 0) {
           particle.y = particle.radius;
-          particle.direction = -particle.direction;
+          particle.vy = -particle.vy;
+          particle.targetDirection = -particle.targetDirection;
         } else if (particle.y + particle.radius > canvasElement.height) {
           particle.y = canvasElement.height - particle.radius;
-          particle.direction = -particle.direction;
+          particle.vy = -particle.vy;
+          particle.targetDirection = -particle.targetDirection;
         }
         return true;
       case 'wrap':
@@ -145,17 +149,17 @@ useEffect(() => {
   }
 
   function updateParticles(particle: Particle, frameScale: number, interactionRadius: number) {
-    particle.direction += (Math.random() - 0.5) * 0.40 * frameScale;
-    particle.vx += (Math.cos(particle.direction) * particle.speed - particle.vx) * 0.05 * frameScale;
-    particle.vy += (Math.sin(particle.direction) * particle.speed - particle.vy) * 0.05 * frameScale;
+    particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
+    particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
+    particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
     const dx = interactionInput.x - particle.x
       const dy = interactionInput.y - particle.y
       const distance = Math.sqrt(dx * dx + dy * dy)
-      if (interactionInput.active && distance < interactionRadius) {
+      if (interactionInput.active && distance < interactionRadius && distance > 0) {
         const force = (interactionRadius - distance) / interactionRadius
         const angle = Math.atan2(dy, dx)
-        particle.vx -= Math.cos(angle) * force * 5
-        particle.vy -= Math.sin(angle) * force * 5
+        particle.vx -= Math.cos(angle) * force * 5 * frameScale
+        particle.vy -= Math.sin(angle) * force * 5 * frameScale
       }
     const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
     if (currentSpeed > maxSpeed) {
