@@ -1,4 +1,5 @@
 import './App.css'
+import CustomSelect from "./CustomSelect.tsx";
 import {useEffect, useRef, useState} from "react";
 
 type Particle = {
@@ -269,33 +270,23 @@ useEffect(() => {
         <span>Mouse position: {mousePosition.x}, {mousePosition.y}</span>
         <span>Hand tracking: Inactive</span>
 
-        <label>
-          Mouse interaction:
-          <select
-            value={interactionInputBehaviour}
-            onChange={(event) =>
-              setInteractionInputBehaviour(event.target.value as MouseBehaviour)
-            }
-          >
-            <option value="repel">Repel</option>
-            <option value="attract">Attract</option>
-            <option value="none">None</option>
-          </select>
-        </label>
+        <CustomSelect
+          label="Mouse interaction"
+          options={['repel', 'attract', 'none']}
+          value={interactionInputBehaviour}
+          onChange={(value) =>
+            setInteractionInputBehaviour(value as MouseBehaviour)
+          }
+        />
 
-        <label>
-          Boundary behavior:
-          <select
-            value={boundaryBehaviour}
-            onChange={(event) =>
-              setBoundaryBehaviour(event.target.value as BoundaryBehaviour)
-            }
-          >
-            <option value="bounce">Bounce</option>
-            <option value="wrap">Wrap</option>
-            <option value="remove">Remove</option>
-          </select>
-        </label>
+        <CustomSelect
+          label="Boundary behavior"
+          options={['bounce', 'wrap', 'remove']}
+          value={boundaryBehaviour}
+          onChange={(value) =>
+            setBoundaryBehaviour(value as BoundaryBehaviour)
+          }
+        />
       </footer>
     </main>
   )
