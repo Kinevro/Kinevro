@@ -13,7 +13,7 @@ type Particle = {
 };
 
 type BoundaryBehavior = 'bounce' | 'wrap' | 'remove';
-
+type MouseBehaviour = 'repel' | 'attract' | 'none';
 type InteractionInput = {
   x: number;
   y: number;
@@ -37,6 +37,7 @@ useEffect(() => {
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
   const boundaryBehavior: BoundaryBehavior = 'bounce';
+  const interactionInputBehaviour: MouseBehaviour = 'repel';
   
   const maxSpeed = 12;
 
@@ -158,11 +159,27 @@ useEffect(() => {
       particle.vy -= Math.sin(angle) * force * 5 * frameScale
     }
   }
+  function applyAttraction(particle: Particle, frameScale: number, interactionRadius: number) {
+    const dx = interactionInput.x - particle.x
+    const dy = interactionInput.y - particle.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    if (interactionInput.active && distance < interactionRadius && distance > 0) {
+      const force = (interactionRadius - distance) / interactionRadius
+      const angle = Math.atan2(dy, dx)
+      particle.vx += Math.cos(angle) * force * 5 * frameScale
+      particle.vy += Math.sin(angle) * force * 5 * frameScale
+    }
+  }
   function updateParticles(particle: Particle, frameScale: number, interactionRadius: number) {
     particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
     particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
     particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
-    applyRepulsion(particle, frameScale, interactionRadius)
+    if (interactionInputBehaviour === 'repel') {
+      applyRepulsion(particle, frameScale, interactionRadius);
+    }
+    if (interactionInputBehaviour === 'attract') {
+      applyAttraction(particle, frameScale, interactionRadius);
+    }
     const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
     if (currentSpeed > maxSpeed) {
       const speedScale = maxSpeed / currentSpeed;
