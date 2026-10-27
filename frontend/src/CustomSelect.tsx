@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useEffect, useState } from "react";
 
 type CustomSelectProps = {
   label: string;
@@ -14,9 +14,37 @@ function CustomSelect({
   onChange,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+  if (!isOpen) return;
+
+  function handleOutsideClick(event: MouseEvent) {
+    if (
+      selectRef.current &&
+      !selectRef.current.contains(event.target as Node)
+    ) {
+      setIsOpen(false);
+    }
+  }
+
+  function handleEscape(event: KeyboardEvent) {
+    if (event.key === 'Escape') {
+      setIsOpen(false);
+    }
+  }
+
+  document.addEventListener('mousedown', handleOutsideClick);
+  document.addEventListener('keydown', handleEscape);
+
+  return () => {
+    document.removeEventListener('mousedown', handleOutsideClick);
+    document.removeEventListener('keydown', handleEscape);
+  };
+}, [isOpen]);
 
   return (
-    <div className="custom-select">
+    <div className="custom-select" ref={selectRef}>
       <span className="custom-select-label">{label}</span>
 
       <button
