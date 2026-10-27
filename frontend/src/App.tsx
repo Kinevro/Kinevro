@@ -12,7 +12,7 @@ type Particle = {
   vy: number;
 };
 
-type BoundaryBehavior = 'bounce' | 'wrap' | 'remove';
+type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
 type MouseBehaviour = 'repel' | 'attract' | 'none';
 type InteractionInput = {
   x: number;
@@ -23,6 +23,14 @@ type InteractionInput = {
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [interactionInputBehaviour, setInteractionInputBehaviour] = useState<MouseBehaviour>('repel');
+  const [boundaryBehaviour, setBoundaryBehaviour] = useState<BoundaryBehaviour>('bounce');
+  const boundaryBehaviourRef = useRef<BoundaryBehaviour>('bounce');
+  const interactionInputBehaviourRef = useRef<MouseBehaviour>('repel');
+useEffect(() => {
+  boundaryBehaviourRef.current = boundaryBehaviour;
+  interactionInputBehaviourRef.current = interactionInputBehaviour;
+}, [boundaryBehaviour, interactionInputBehaviour]);
 useEffect(() => {
   const canvas = canvasRef.current
   const stage = canvas?.parentElement
@@ -36,8 +44,6 @@ useEffect(() => {
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
-  const boundaryBehavior: BoundaryBehavior = 'bounce';
-  const interactionInputBehaviour: MouseBehaviour = 'repel';
   
   const maxSpeed = 12;
 
@@ -103,7 +109,7 @@ useEffect(() => {
   }
 
   function handleBoundary(particle: Particle): boolean {
-    switch (boundaryBehavior) {
+    switch (boundaryBehaviourRef.current) {
       case 'bounce':
         if (particle.x - particle.radius < 0) {
           particle.x = particle.radius;
@@ -174,10 +180,10 @@ useEffect(() => {
     particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
     particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
     particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
-    if (interactionInputBehaviour === 'repel') {
+    if (interactionInputBehaviourRef.current === 'repel') {
       applyRepulsion(particle, frameScale, interactionRadius);
     }
-    if (interactionInputBehaviour === 'attract') {
+    if (interactionInputBehaviourRef.current === 'attract') {
       applyAttraction(particle, frameScale, interactionRadius);
     }
     const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
@@ -262,6 +268,34 @@ useEffect(() => {
         <span>Mode: Idle</span>
         <span>Mouse position: {mousePosition.x}, {mousePosition.y}</span>
         <span>Hand tracking: Inactive</span>
+
+        <label>
+          Mouse interaction:
+          <select
+            value={interactionInputBehaviour}
+            onChange={(event) =>
+              setInteractionInputBehaviour(event.target.value as MouseBehaviour)
+            }
+          >
+            <option value="repel">Repel</option>
+            <option value="attract">Attract</option>
+            <option value="none">None</option>
+          </select>
+        </label>
+
+        <label>
+          Boundary behavior:
+          <select
+            value={boundaryBehaviour}
+            onChange={(event) =>
+              setBoundaryBehaviour(event.target.value as BoundaryBehaviour)
+            }
+          >
+            <option value="bounce">Bounce</option>
+            <option value="wrap">Wrap</option>
+            <option value="remove">Remove</option>
+          </select>
+        </label>
       </footer>
     </main>
   )
