@@ -1,5 +1,6 @@
 import './App.css'
-import {useEffect, useRef} from "react";
+import CustomSelect from "./CustomSelect.tsx";
+import {useEffect, useRef, useState} from "react";
 
 type Particle = {
   x: number;
@@ -7,14 +8,30 @@ type Particle = {
   radius: number;
   color: string;
   speed: number;
-  direction: number;
+  targetDirection: number;
+  vx: number;
+  vy: number;
 };
 
-type BoundaryBehavior = 'bounce' | 'wrap' | 'remove';
+type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
+type MouseBehaviour = 'repel' | 'attract' | 'none';
+type InteractionInput = {
+  x: number;
+  y: number;
+  active: boolean;
+};
 
 function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [interactionInputBehaviour, setInteractionInputBehaviour] = useState<MouseBehaviour>('repel');
+  const [boundaryBehaviour, setBoundaryBehaviour] = useState<BoundaryBehaviour>('bounce');
+  const boundaryBehaviourRef = useRef<BoundaryBehaviour>('bounce');
+  const interactionInputBehaviourRef = useRef<MouseBehaviour>('repel');
+useEffect(() => {
+  boundaryBehaviourRef.current = boundaryBehaviour;
+  interactionInputBehaviourRef.current = interactionInputBehaviour;
+}, [boundaryBehaviour, interactionInputBehaviour]);
 useEffect(() => {
   const canvas = canvasRef.current
   const stage = canvas?.parentElement
@@ -28,8 +45,25 @@ useEffect(() => {
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
-  let boundaryBehavior: BoundaryBehavior = 'remove';
+  
+  const maxSpeed = 12;
 
+  const interactionInput: InteractionInput = {
+    x: 0,
+    y: 0,
+    active: false,
+  };
+
+  function handleMouseMove(event: MouseEvent) {
+    const rect = canvasElement.getBoundingClientRect();
+    interactionInput.x = event.clientX - rect.left;
+    interactionInput.y = event.clientY - rect.top;
+    setMousePosition({
+      x: Math.round(interactionInput.x),
+      y: Math.round(interactionInput.y)
+    });
+  }
+  
   function resizeCanvas() {
     let scaleX = 1
     let scaleY = 1
@@ -57,36 +91,44 @@ useEffect(() => {
   }
   let particles: Particle[] = []
   function createParticles() {
-    const numParticles = Math.floor(Math.random() * 50 + 65)
+    const numParticles = Math.floor(Math.random() * 50 + 100)
     particles = []
     for (let i = 0; i < numParticles; i++) {
+      const speed = Math.random() * 6 + 3
+      const targetDirection = Math.random() * Math.PI * 2
       particles.push({
         x: Math.random() * canvasElement.width,
         y: Math.random() * canvasElement.height,
         radius: Math.random() * 5 + 1,
         color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-        speed: Math.random() * 6 + 3,
-        direction: Math.random() * Math.PI * 2
+        speed: speed,
+        targetDirection: targetDirection,
+        vx: Math.cos(targetDirection) * speed,
+        vy: Math.sin(targetDirection) * speed,
       })
     }
   }
 
   function handleBoundary(particle: Particle): boolean {
-    switch (boundaryBehavior) {
+    switch (boundaryBehaviourRef.current) {
       case 'bounce':
         if (particle.x - particle.radius < 0) {
           particle.x = particle.radius;
-          particle.direction = Math.PI - particle.direction;
+          particle.vx = -particle.vx;
+          particle.targetDirection = Math.PI - particle.targetDirection;
         } else if (particle.x + particle.radius > canvasElement.width) {
           particle.x = canvasElement.width - particle.radius;
-          particle.direction = Math.PI - particle.direction;
+          particle.vx = -particle.vx;
+          particle.targetDirection = Math.PI - particle.targetDirection;
         }
         if (particle.y - particle.radius < 0) {
           particle.y = particle.radius;
-          particle.direction = -particle.direction;
+          particle.vy = -particle.vy;
+          particle.targetDirection = -particle.targetDirection;
         } else if (particle.y + particle.radius > canvasElement.height) {
           particle.y = canvasElement.height - particle.radius;
-          particle.direction = -particle.direction;
+          particle.vy = -particle.vy;
+          particle.targetDirection = -particle.targetDirection;
         }
         return true;
       case 'wrap':
@@ -113,6 +155,48 @@ useEffect(() => {
       return true;
     }
   }
+  function applyRepulsion(particle: Particle, frameScale: number, interactionRadius: number) {
+    const dx = interactionInput.x - particle.x
+    const dy = interactionInput.y - particle.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    if (interactionInput.active && distance < interactionRadius && distance > 0) {
+      const force = (interactionRadius - distance) / interactionRadius
+      const angle = Math.atan2(dy, dx)
+      particle.vx -= Math.cos(angle) * force * 5 * frameScale
+      particle.vy -= Math.sin(angle) * force * 5 * frameScale
+    }
+  }
+  function applyAttraction(particle: Particle, frameScale: number, interactionRadius: number) {
+    const dx = interactionInput.x - particle.x
+    const dy = interactionInput.y - particle.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+    if (interactionInput.active && distance < interactionRadius && distance > 0) {
+      const force = (interactionRadius - distance) / interactionRadius
+      const angle = Math.atan2(dy, dx)
+      particle.vx += Math.cos(angle) * force * 5 * frameScale
+      particle.vy += Math.sin(angle) * force * 5 * frameScale
+    }
+  }
+  function updateParticles(particle: Particle, frameScale: number, interactionRadius: number) {
+    particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
+    particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
+    particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
+    if (interactionInputBehaviourRef.current === 'repel') {
+      applyRepulsion(particle, frameScale, interactionRadius);
+    }
+    if (interactionInputBehaviourRef.current === 'attract') {
+      applyAttraction(particle, frameScale, interactionRadius);
+    }
+    const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
+    if (currentSpeed > maxSpeed) {
+      const speedScale = maxSpeed / currentSpeed;
+      particle.vx *= speedScale;
+      particle.vy *= speedScale;
+    }
+    particle.x += particle.vx * frameScale
+    particle.y += particle.vy * frameScale
+
+  }
 
   function draw(timestamp: number = 0) {
     animationFrameId = 0
@@ -126,11 +210,14 @@ useEffect(() => {
     const frameScale = deltaTime * 60
     drawingContext.clearRect(0, 0, canvasElement.width, canvasElement.height)
     lastTimestamp = timestamp
+    
+    const interactionRadius = 0.33 * Math.min(
+      canvasElement.width,
+      canvasElement.height
+    );
 
     particles = particles.filter(particle => {
-      particle.direction += (Math.random() - 0.5) * 0.40  * frameScale
-      particle.x += Math.cos(particle.direction) * particle.speed * frameScale
-      particle.y += Math.sin(particle.direction) * particle.speed * frameScale
+      updateParticles(particle, frameScale, interactionRadius)
       return handleBoundary(particle)
     })
 
@@ -143,6 +230,15 @@ useEffect(() => {
     animationFrameId = requestAnimationFrame(draw)
   }
 
+  canvasElement.addEventListener('mousemove', handleMouseMove);
+  canvasElement.addEventListener('mouseenter', handleMouseEnter);
+  canvasElement.addEventListener('mouseleave', handleMouseLeave);
+  function handleMouseEnter() {
+    interactionInput.active = true;
+  }
+  function handleMouseLeave() {
+    interactionInput.active = false;
+  }
   const observer = new ResizeObserver(resizeCanvas)
 
   observer.observe(stage)
@@ -150,8 +246,12 @@ useEffect(() => {
   resizeCanvas()
 
   return () => {
+    canvasElement.removeEventListener('mousemove', handleMouseMove);
+    canvasElement.removeEventListener('mouseenter', handleMouseEnter);
+    canvasElement.removeEventListener('mouseleave', handleMouseLeave);
     observer.disconnect()
     cancelAnimationFrame(animationFrameId)
+
   }
 }, [])
   return (
@@ -167,7 +267,26 @@ useEffect(() => {
 
       <footer className="workspace-footer">
         <span>Mode: Idle</span>
+        <span>Mouse position: {mousePosition.x}, {mousePosition.y}</span>
         <span>Hand tracking: Inactive</span>
+
+        <CustomSelect
+          label="Mouse interaction"
+          options={['repel', 'attract', 'none']}
+          value={interactionInputBehaviour}
+          onChange={(value) =>
+            setInteractionInputBehaviour(value as MouseBehaviour)
+          }
+        />
+
+        <CustomSelect
+          label="Boundary behavior"
+          options={['bounce', 'wrap', 'remove']}
+          value={boundaryBehaviour}
+          onChange={(value) =>
+            setBoundaryBehaviour(value as BoundaryBehaviour)
+          }
+        />
       </footer>
     </main>
   )
