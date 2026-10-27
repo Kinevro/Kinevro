@@ -4,12 +4,13 @@ import { app, BrowserWindow } from 'electron'
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    show: false,
     webPreferences: {
       preload: join(__dirname, '../preload/index.cjs'),
     },
   })
+  mainWindow.maximize();
+  mainWindow.show();
   if(process.env.ELECTRON_RENDERER_URL) {
     mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL)
   }
