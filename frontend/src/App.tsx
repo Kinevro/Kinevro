@@ -1,3 +1,4 @@
+import HandTracker from "./HandTracker.tsx";
 import './App.css'
 import CustomSelect from "./CustomSelect.tsx";
 import {useEffect, useRef, useState} from "react";
@@ -256,6 +257,7 @@ useEffect(() => {
 }, [])
   return (
     <main className="workspace">
+      <HandTracker />
       <header className="workspace-header">
         <h1>Kinevro</h1>
         <span className="connection-status">Camera not connected</span>
