@@ -23,6 +23,10 @@ type InteractionInput = {
 };
 
 function App() {
+  function handleHandPosition(x: number, y: number) {
+    console.log(`Hand position: (${x}, ${y})`);
+  }
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [interactionInputBehaviour, setInteractionInputBehaviour] = useState<MouseBehaviour>('repel');
@@ -257,7 +261,7 @@ useEffect(() => {
 }, [])
   return (
     <main className="workspace">
-      <HandTracker />
+      <HandTracker onHandPosition={handleHandPosition}/>
       <header className="workspace-header">
         <h1>Kinevro</h1>
         <span className="connection-status">Camera not connected</span>
