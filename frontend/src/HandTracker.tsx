@@ -8,7 +8,7 @@ function HandTracker() {
 
   useEffect(() => {
     let active = true;
-    const animationFrameId: number | null = null;
+    let animationFrameId: number | null = null;
     let stream: MediaStream | null = null;
 
     const initializeMediapipe = async () => {
@@ -22,6 +22,9 @@ function HandTracker() {
         },
         runningMode: 'VIDEO',
         numHands: 2,
+        minHandDetectionConfidence: 0.5,
+        minHandPresenceConfidence: 0.5,
+        minTrackingConfidence: 0.4
       });
       handLandmarkerRef.current = handLandmarker;
       if(!active) {
@@ -49,11 +52,25 @@ function HandTracker() {
         console.error("Error accessing the camera:", error);
       }
     }
+
+    function detectHands() {
+      if (!active) return;
+      animationFrameId = requestAnimationFrame(detectHands);
+      const video = videoRef.current;
+      const handLandmarker = handLandmarkerRef.current;
+      if (!video || !handLandmarker || !(video.readyState >=2)) {
+        return;
+      }
+      const results = handLandmarker.detectForVideo(video, performance.now());
+      console.log(results.landmarks.length);
+    }
+    
     async function start() {
       try {
         await initializeMediapipe();
         if (!active) return;
         await startCamera();
+        detectHands();
       } catch (error) {
         console.error("Error starting the hand tracking:", error);
       }
