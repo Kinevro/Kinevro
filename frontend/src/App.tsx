@@ -1,7 +1,7 @@
 import HandTracker from "./HandTracker.tsx";
 import './App.css'
 import CustomSelect from "./CustomSelect.tsx";
-import {useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState, useCallback} from "react";
 
 type Particle = {
   x: number;
@@ -22,15 +22,18 @@ type InteractionInput = {
   active: boolean;
 };
 
+type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
+
 type HandPosition = {
   x: number;
   y: number;
+  gesture: Gesture;
 }
 
 function App() {
-  function handleHandPosition(positions: HandPosition[]) {
+  const handleHandPosition = useCallback((positions: HandPosition[]) => {
     handPositionRef.current = positions;
-  }
+  }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });

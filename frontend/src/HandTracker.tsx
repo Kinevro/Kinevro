@@ -1,19 +1,55 @@
 import { useEffect, useRef } from "react";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
+type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
+
 type HandPosition = {
   x: number;
   y: number;
+  gesture: Gesture;
 }
 
 type HandTrackerProps = {
   onHandPosition: (positions: HandPosition[]) => void;
 }
 
+function recognizeGesture(landmarks: { x: number; y: number}[]): Gesture {
+  const fingersExtended = [
+    landmarks[8].y < landmarks[6].y,
+    landmarks[12].y < landmarks[10].y,
+    landmarks[16].y < landmarks[14].y,
+    landmarks[20].y < landmarks[18].y,
+  ];
+
+  const thumbTip = landmarks[4];
+  const indexTip = landmarks[8];
+
+  const pinchDistance = Math.hypot(
+    thumbTip.x - indexTip.x,
+    thumbTip.y - indexTip.y
+  );
+  
+  if (pinchDistance < 0.05) {
+    return 'pinch';
+  }
+
+  if (fingersExtended.every(Boolean)){
+    return 'open-palm';
+  }
+
+  if (fingersExtended.every((extended) => !extended)) {
+    return 'fist';
+  }
+
+  return 'unknown';
+}
+
 function HandTracker({onHandPosition}: HandTrackerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handLandmarkerRef = useRef<HandLandmarker | null>(null);
+
+  const previousGesturesRef = useRef<Gesture[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -76,9 +112,24 @@ function HandTracker({onHandPosition}: HandTrackerProps) {
 
         return {
           x: 1-indexTip.x,
-          y: indexTip.y
+          y: indexTip.y,
+          gesture: recognizeGesture(landmarks)
         };
       });
+      positions.forEach((position, index) => {
+        const previousGesture = previousGesturesRef.current[index];
+
+        if (
+          position.gesture !== 'unknown' &&
+          position.gesture !== previousGesture
+        ) {
+          console.log(`Hand ${index + 1}: ${position.gesture}`);
+        }
+      });
+
+      previousGesturesRef.current = positions.map(
+        (position) => position.gesture
+      );
       onHandPosition(positions);
     }
     
@@ -106,7 +157,7 @@ function HandTracker({onHandPosition}: HandTrackerProps) {
         handLandmarkerRef.current = null;
       }
     };
-  }, []);
+  }, [onHandPosition]);
 
  return <video ref={videoRef} playsInline
   muted autoPlay width={320} height={240}
