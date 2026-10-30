@@ -22,9 +22,14 @@ type InteractionInput = {
   active: boolean;
 };
 
+type HandPosition = {
+  x: number;
+  y: number;
+}
+
 function App() {
-  function handleHandPosition(x: number, y: number) {
-    console.log(`Hand position: (${x}, ${y})`);
+  function handleHandPosition(positions: HandPosition[]) {
+    handPositionRef.current = positions;
   }
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,6 +38,8 @@ function App() {
   const [boundaryBehaviour, setBoundaryBehaviour] = useState<BoundaryBehaviour>('bounce');
   const boundaryBehaviourRef = useRef<BoundaryBehaviour>('bounce');
   const interactionInputBehaviourRef = useRef<MouseBehaviour>('repel');
+  const handPositionRef = useRef<HandPosition[]>([]);
+  
 useEffect(() => {
   boundaryBehaviourRef.current = boundaryBehaviour;
   interactionInputBehaviourRef.current = interactionInputBehaviour;
@@ -161,25 +168,43 @@ useEffect(() => {
     }
   }
   function applyRepulsion(particle: Particle, frameScale: number, interactionRadius: number) {
-    const dx = interactionInput.x - particle.x
-    const dy = interactionInput.y - particle.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    if (interactionInput.active && distance < interactionRadius && distance > 0) {
-      const force = (interactionRadius - distance) / interactionRadius
-      const angle = Math.atan2(dy, dx)
-      particle.vx -= Math.cos(angle) * force * 5 * frameScale
-      particle.vy -= Math.sin(angle) * force * 5 * frameScale
+    for(const handPosition of handPositionRef.current){
+      const handX = handPosition.x * canvasElement.width;
+      const handY = handPosition.y * canvasElement.height;
+
+      const dx = handX - particle.x;
+      const dy = handY - particle.y;
+
+      const distance = Math.sqrt(dx * dx + dy * dy)
+      if (distance < interactionRadius && distance > 0) {
+        const force = (interactionRadius - distance) / interactionRadius
+        const angle = Math.atan2(dy, dx)
+        particle.vx -= Math.cos(angle) * force * 5 * frameScale
+        particle.vy -= Math.sin(angle) * force * 5 * frameScale
+      }
     }
   }
-  function applyAttraction(particle: Particle, frameScale: number, interactionRadius: number) {
-    const dx = interactionInput.x - particle.x
-    const dy = interactionInput.y - particle.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    if (interactionInput.active && distance < interactionRadius && distance > 0) {
-      const force = (interactionRadius - distance) / interactionRadius
-      const angle = Math.atan2(dy, dx)
-      particle.vx += Math.cos(angle) * force * 5 * frameScale
-      particle.vy += Math.sin(angle) * force * 5 * frameScale
+  function applyAttraction(
+    particle: Particle,
+    frameScale: number,
+    interactionRadius: number
+  ) {
+    for (const handPosition of handPositionRef.current) {
+      const handX = handPosition.x * canvasElement.width;
+      const handY = handPosition.y * canvasElement.height;
+
+      const dx = handX - particle.x;
+      const dy = handY - particle.y;
+
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < interactionRadius && distance > 0) {
+        const force = (interactionRadius - distance) / interactionRadius;
+        const angle = Math.atan2(dy, dx);
+
+        particle.vx += Math.cos(angle) * force * 5 * frameScale;
+        particle.vy += Math.sin(angle) * force * 5 * frameScale;
+      }
     }
   }
   function updateParticles(particle: Particle, frameScale: number, interactionRadius: number) {
@@ -212,7 +237,9 @@ useEffect(() => {
     else {
       deltaTime = 0
     }
-    const frameScale = deltaTime * 60
+    const frameScale = deltaTime * 60;
+    
+
     drawingContext.clearRect(0, 0, canvasElement.width, canvasElement.height)
     lastTimestamp = timestamp
     
@@ -235,9 +262,9 @@ useEffect(() => {
     animationFrameId = requestAnimationFrame(draw)
   }
 
-  canvasElement.addEventListener('mousemove', handleMouseMove);
-  canvasElement.addEventListener('mouseenter', handleMouseEnter);
-  canvasElement.addEventListener('mouseleave', handleMouseLeave);
+  //canvasElement.addEventListener('mousemove', handleMouseMove);
+  //canvasElement.addEventListener('mouseenter', handleMouseEnter);
+  //canvasElement.addEventListener('mouseleave', handleMouseLeave);
   function handleMouseEnter() {
     interactionInput.active = true;
   }

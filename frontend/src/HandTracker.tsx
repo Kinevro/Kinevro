@@ -1,8 +1,13 @@
 import { useEffect, useRef } from "react";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
+type HandPosition = {
+  x: number;
+  y: number;
+}
+
 type HandTrackerProps = {
-  onHandPosition: (x: number, y: number) => void;
+  onHandPosition: (positions: HandPosition[]) => void;
 }
 
 function HandTracker({onHandPosition}: HandTrackerProps) {
@@ -66,13 +71,15 @@ function HandTracker({onHandPosition}: HandTrackerProps) {
         return;
       }
       const results = handLandmarker.detectForVideo(video, performance.now());
-      if (results.landmarks.length > 0){
-        const landmarks = results.landmarks[0];
+      const positions = results.landmarks.map((landmarks) =>{
         const indexTip = landmarks[8];
-        const canvasX = indexTip.x *  video.videoWidth;
-        const canvasY = indexTip.y * video.videoHeight;
-        onHandPosition(canvasX, canvasY);
-      }
+
+        return {
+          x: 1-indexTip.x,
+          y: indexTip.y
+        };
+      });
+      onHandPosition(positions);
     }
     
     async function start() {
@@ -101,7 +108,9 @@ function HandTracker({onHandPosition}: HandTrackerProps) {
     };
   }, []);
 
- return <video ref={videoRef} playsInline muted autoPlay width={320} height={240}/>;
+ return <video ref={videoRef} playsInline
+  muted autoPlay width={320} height={240}
+  style = {{transform: "scaleX(-1)"}}/>;
 }
 
 export default HandTracker;
