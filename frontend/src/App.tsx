@@ -257,6 +257,34 @@ useEffect(() => {
 
   }
 
+  function drawHandIndicators() {
+    handPositionRef.current.forEach(handPosition => {
+      const handX = handPosition.x * canvasElement.width;
+      const handY = handPosition.y * canvasElement.height;
+
+      let indicatorColor = 'grey';
+
+      if (handPosition.gesture === 'open-palm') {
+        indicatorColor = 'red';
+      } else if (handPosition.gesture === 'fist') {
+        indicatorColor = 'blue';
+      } else if (handPosition.gesture === 'pinch') {
+        indicatorColor = 'purple';
+      }
+
+      drawingContext.beginPath();
+      drawingContext.arc(handX, handY, 8, 0, Math.PI * 2);
+      drawingContext.fillStyle = indicatorColor;
+      drawingContext.fill();
+
+      drawingContext.beginPath();
+      drawingContext.arc(handX, handY, 15, 0, Math.PI * 2);
+      drawingContext.strokeStyle = indicatorColor;
+      drawingContext.lineWidth = 2;
+      drawingContext.stroke();
+    });
+  }
+
   function draw(timestamp: number = 0) {
     animationFrameId = 0
     let deltaTime: number
@@ -288,6 +316,9 @@ useEffect(() => {
       drawingContext.fillStyle = particle.color
       drawingContext.fill()
     })
+
+    drawHandIndicators();
+
     animationFrameId = requestAnimationFrame(draw)
   }
 
