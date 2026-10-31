@@ -15,12 +15,6 @@ type Particle = {
 };
 
 type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
-type MouseBehaviour = 'repel' | 'attract' | 'none';
-type InteractionInput = {
-  x: number;
-  y: number;
-  active: boolean;
-};
 
 type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
 
@@ -36,17 +30,13 @@ function App() {
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [interactionInputBehaviour, setInteractionInputBehaviour] = useState<MouseBehaviour>('repel');
   const [boundaryBehaviour, setBoundaryBehaviour] = useState<BoundaryBehaviour>('bounce');
   const boundaryBehaviourRef = useRef<BoundaryBehaviour>('bounce');
-  const interactionInputBehaviourRef = useRef<MouseBehaviour>('repel');
   const handPositionRef = useRef<HandPosition[]>([]);
   
 useEffect(() => {
   boundaryBehaviourRef.current = boundaryBehaviour;
-  interactionInputBehaviourRef.current = interactionInputBehaviour;
-}, [boundaryBehaviour, interactionInputBehaviour]);
+}, [boundaryBehaviour]);
 useEffect(() => {
   const canvas = canvasRef.current
   const stage = canvas?.parentElement
@@ -63,22 +53,6 @@ useEffect(() => {
   
   const maxSpeed = 12;
 
-  const interactionInput: InteractionInput = {
-    x: 0,
-    y: 0,
-    active: false,
-  };
-
-  function handleMouseMove(event: MouseEvent) {
-    const rect = canvasElement.getBoundingClientRect();
-    interactionInput.x = event.clientX - rect.left;
-    interactionInput.y = event.clientY - rect.top;
-    setMousePosition({
-      x: Math.round(interactionInput.x),
-      y: Math.round(interactionInput.y)
-    });
-  }
-  
   function resizeCanvas() {
     let scaleX = 1
     let scaleY = 1
@@ -322,15 +296,6 @@ useEffect(() => {
     animationFrameId = requestAnimationFrame(draw)
   }
 
-  //canvasElement.addEventListener('mousemove', handleMouseMove);
-  //canvasElement.addEventListener('mouseenter', handleMouseEnter);
-  //canvasElement.addEventListener('mouseleave', handleMouseLeave);
-  function handleMouseEnter() {
-    interactionInput.active = true;
-  }
-  function handleMouseLeave() {
-    interactionInput.active = false;
-  }
   const observer = new ResizeObserver(resizeCanvas)
 
   observer.observe(stage)
@@ -338,9 +303,6 @@ useEffect(() => {
   resizeCanvas()
 
   return () => {
-    canvasElement.removeEventListener('mousemove', handleMouseMove);
-    canvasElement.removeEventListener('mouseenter', handleMouseEnter);
-    canvasElement.removeEventListener('mouseleave', handleMouseLeave);
     observer.disconnect()
     cancelAnimationFrame(animationFrameId)
 
@@ -360,17 +322,7 @@ useEffect(() => {
 
       <footer className="workspace-footer">
         <span>Mode: Idle</span>
-        <span>Mouse position: {mousePosition.x}, {mousePosition.y}</span>
         <span>Hand tracking: Inactive</span>
-
-        <CustomSelect
-          label="Mouse interaction"
-          options={['repel', 'attract', 'none']}
-          value={interactionInputBehaviour}
-          onChange={(value) =>
-            setInteractionInputBehaviour(value as MouseBehaviour)
-          }
-        />
 
         <CustomSelect
           label="Boundary behavior"
