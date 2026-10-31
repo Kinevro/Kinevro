@@ -11,6 +11,8 @@ type HandPosition = {
 
 type HandTrackerProps = {
   onHandPosition: (positions: HandPosition[]) => void;
+  cameraVisible: boolean;
+  cameraOpacity: number;
 }
 
 function recognizeGesture(landmarks: { x: number; y: number}[]): Gesture {
@@ -44,7 +46,11 @@ function recognizeGesture(landmarks: { x: number; y: number}[]): Gesture {
   return 'unknown';
 }
 
-function HandTracker({onHandPosition}: HandTrackerProps) {
+function HandTracker({
+  onHandPosition,
+  cameraVisible,
+  cameraOpacity
+}: HandTrackerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handLandmarkerRef = useRef<HandLandmarker | null>(null);
@@ -159,9 +165,24 @@ function HandTracker({onHandPosition}: HandTrackerProps) {
     };
   }, [onHandPosition]);
 
- return <video ref={videoRef} playsInline
-  muted autoPlay width={320} height={240}
-  style = {{transform: "scaleX(-1)"}}/>;
+ return (
+  <video
+    ref={videoRef}
+    playsInline
+    muted
+    autoPlay
+    style={{
+      position: 'absolute',
+      inset: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      transform: 'scaleX(-1)',
+      opacity: cameraVisible ? cameraOpacity : 0,
+      pointerEvents: 'none',
+    }}
+  />
+);
 }
 
 export default HandTracker;

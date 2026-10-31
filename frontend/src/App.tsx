@@ -33,6 +33,8 @@ function App() {
   const [boundaryBehaviour, setBoundaryBehaviour] = useState<BoundaryBehaviour>('bounce');
   const boundaryBehaviourRef = useRef<BoundaryBehaviour>('bounce');
   const handPositionRef = useRef<HandPosition[]>([]);
+  const [cameraVisible, setCameraVisible] = useState(true);
+  const [cameraOpacity, setCameraOpacity] = useState(0.2);
   
 useEffect(() => {
   boundaryBehaviourRef.current = boundaryBehaviour;
@@ -310,13 +312,17 @@ useEffect(() => {
 }, [])
   return (
     <main className="workspace">
-      <HandTracker onHandPosition={handleHandPosition}/>
       <header className="workspace-header">
         <h1>Kinevro</h1>
         <span className="connection-status">Camera not connected</span>
       </header>
 
       <section className="visual-stage">
+        <HandTracker
+        onHandPosition={handleHandPosition}
+        cameraVisible={cameraVisible}
+        cameraOpacity={cameraOpacity}
+        />
         <canvas className="visual-canvas" ref={canvasRef}/>
       </section>
 
@@ -332,6 +338,28 @@ useEffect(() => {
             setBoundaryBehaviour(value as BoundaryBehaviour)
           }
         />
+        <label className="camera-control">
+          <input
+            type="checkbox"
+            checked={cameraVisible}
+            onChange={(event) => setCameraVisible(event.target.checked)}
+          />
+          Show camera preview
+        </label>
+
+        <label className="camera-control">
+          Camera opacity
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={cameraOpacity}
+            onChange={(event) => setCameraOpacity(Number(event.target.value))}
+            disabled={!cameraVisible}
+          />
+          {Math.round(cameraOpacity * 100)}%
+        </label>
       </footer>
     </main>
   )
