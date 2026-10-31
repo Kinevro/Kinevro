@@ -110,11 +110,6 @@ Create directories incrementally when their contents are needed. Keep
 the runtime implementation distinct from offline experiments and
 training code.
 
-See
-[`Kinevro_Thesis_Roadmap_Electron.md`](Kinevro_Thesis_Roadmap_Electron.md)
-for the thesis roadmap and milestones, if that document is present in
-the repository root.
-
 ## Getting started
 
 ### Prerequisites
