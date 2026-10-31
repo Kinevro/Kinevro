@@ -63,10 +63,10 @@ body {
 }
 
 .visual-stage {
+  position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  place-items: center;
+  overflow: hidden;
   border: 1px solid #292c37;
   border-radius: 12px;
   background:
@@ -112,6 +112,9 @@ body {
 }
 
 .visual-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;

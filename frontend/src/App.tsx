@@ -15,12 +15,6 @@ type Particle = {
 };
 
 type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
-type MouseBehaviour = 'repel' | 'attract' | 'none';
-type InteractionInput = {
-  x: number;
-  y: number;
-  active: boolean;
-};
 
 type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
 
@@ -36,17 +30,15 @@ function App() {
   }, []);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [interactionInputBehaviour, setInteractionInputBehaviour] = useState<MouseBehaviour>('repel');
   const [boundaryBehaviour, setBoundaryBehaviour] = useState<BoundaryBehaviour>('bounce');
   const boundaryBehaviourRef = useRef<BoundaryBehaviour>('bounce');
-  const interactionInputBehaviourRef = useRef<MouseBehaviour>('repel');
   const handPositionRef = useRef<HandPosition[]>([]);
+  const [cameraVisible, setCameraVisible] = useState(true);
+  const [cameraOpacity, setCameraOpacity] = useState(0.2);
   
 useEffect(() => {
   boundaryBehaviourRef.current = boundaryBehaviour;
-  interactionInputBehaviourRef.current = interactionInputBehaviour;
-}, [boundaryBehaviour, interactionInputBehaviour]);
+}, [boundaryBehaviour]);
 useEffect(() => {
   const canvas = canvasRef.current
   const stage = canvas?.parentElement
@@ -63,22 +55,6 @@ useEffect(() => {
   
   const maxSpeed = 12;
 
-  const interactionInput: InteractionInput = {
-    x: 0,
-    y: 0,
-    active: false,
-  };
-
-  function handleMouseMove(event: MouseEvent) {
-    const rect = canvasElement.getBoundingClientRect();
-    interactionInput.x = event.clientX - rect.left;
-    interactionInput.y = event.clientY - rect.top;
-    setMousePosition({
-      x: Math.round(interactionInput.x),
-      y: Math.round(interactionInput.y)
-    });
-  }
-  
   function resizeCanvas() {
     let scaleX = 1
     let scaleY = 1
@@ -172,6 +148,7 @@ useEffect(() => {
   }
   function applyRepulsion(particle: Particle, frameScale: number, interactionRadius: number) {
     for(const handPosition of handPositionRef.current){
+      if(handPosition.gesture !== 'open-palm')continue;
       const handX = handPosition.x * canvasElement.width;
       const handY = handPosition.y * canvasElement.height;
 
@@ -193,6 +170,8 @@ useEffect(() => {
     interactionRadius: number
   ) {
     for (const handPosition of handPositionRef.current) {
+      if(handPosition.gesture !== 'fist')continue;
+
       const handX = handPosition.x * canvasElement.width;
       const handY = handPosition.y * canvasElement.height;
 
@@ -205,8 +184,34 @@ useEffect(() => {
         const force = (interactionRadius - distance) / interactionRadius;
         const angle = Math.atan2(dy, dx);
 
-        particle.vx += Math.cos(angle) * force * 5 * frameScale;
-        particle.vy += Math.sin(angle) * force * 5 * frameScale;
+        particle.vx += Math.cos(angle) * force * 1.25 * frameScale;
+        particle.vy += Math.sin(angle) * force * 1.25 * frameScale;
+      }
+    }
+  }
+  function applyPinch(
+    particle: Particle,
+    frameScale: number,
+    interactionRadius: number
+  ) {
+    const pinchRadius = interactionRadius / 2;
+    for (const handPosition of handPositionRef.current) {
+      if (handPosition.gesture !== 'pinch') continue;
+
+      const handX = handPosition.x * canvasElement.width;
+      const handY = handPosition.y * canvasElement.height;
+
+      const dx = handX - particle.x;
+      const dy = handY - particle.y;
+
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < pinchRadius && distance > 0) {
+        const force = (pinchRadius - distance) / pinchRadius;
+        const angle = Math.atan2(dy, dx);
+
+        particle.vx += Math.cos(angle) * force * 10 * frameScale;
+        particle.vy += Math.sin(angle) * force * 10 * frameScale;
       }
     }
   }
@@ -214,12 +219,9 @@ useEffect(() => {
     particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
     particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
     particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
-    if (interactionInputBehaviourRef.current === 'repel') {
-      applyRepulsion(particle, frameScale, interactionRadius);
-    }
-    if (interactionInputBehaviourRef.current === 'attract') {
-      applyAttraction(particle, frameScale, interactionRadius);
-    }
+    applyRepulsion(particle, frameScale, interactionRadius);
+    applyAttraction(particle, frameScale, interactionRadius);
+    applyPinch(particle, frameScale, interactionRadius);
     const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
     if (currentSpeed > maxSpeed) {
       const speedScale = maxSpeed / currentSpeed;
@@ -229,6 +231,34 @@ useEffect(() => {
     particle.x += particle.vx * frameScale
     particle.y += particle.vy * frameScale
 
+  }
+
+  function drawHandIndicators() {
+    handPositionRef.current.forEach(handPosition => {
+      const handX = handPosition.x * canvasElement.width;
+      const handY = handPosition.y * canvasElement.height;
+
+      let indicatorColor = 'grey';
+
+      if (handPosition.gesture === 'open-palm') {
+        indicatorColor = 'red';
+      } else if (handPosition.gesture === 'fist') {
+        indicatorColor = 'blue';
+      } else if (handPosition.gesture === 'pinch') {
+        indicatorColor = 'purple';
+      }
+
+      drawingContext.beginPath();
+      drawingContext.arc(handX, handY, 8, 0, Math.PI * 2);
+      drawingContext.fillStyle = indicatorColor;
+      drawingContext.fill();
+
+      drawingContext.beginPath();
+      drawingContext.arc(handX, handY, 15, 0, Math.PI * 2);
+      drawingContext.strokeStyle = indicatorColor;
+      drawingContext.lineWidth = 2;
+      drawingContext.stroke();
+    });
   }
 
   function draw(timestamp: number = 0) {
@@ -262,18 +292,12 @@ useEffect(() => {
       drawingContext.fillStyle = particle.color
       drawingContext.fill()
     })
+
+    drawHandIndicators();
+
     animationFrameId = requestAnimationFrame(draw)
   }
 
-  //canvasElement.addEventListener('mousemove', handleMouseMove);
-  //canvasElement.addEventListener('mouseenter', handleMouseEnter);
-  //canvasElement.addEventListener('mouseleave', handleMouseLeave);
-  function handleMouseEnter() {
-    interactionInput.active = true;
-  }
-  function handleMouseLeave() {
-    interactionInput.active = false;
-  }
   const observer = new ResizeObserver(resizeCanvas)
 
   observer.observe(stage)
@@ -281,9 +305,6 @@ useEffect(() => {
   resizeCanvas()
 
   return () => {
-    canvasElement.removeEventListener('mousemove', handleMouseMove);
-    canvasElement.removeEventListener('mouseenter', handleMouseEnter);
-    canvasElement.removeEventListener('mouseleave', handleMouseLeave);
     observer.disconnect()
     cancelAnimationFrame(animationFrameId)
 
@@ -291,29 +312,23 @@ useEffect(() => {
 }, [])
   return (
     <main className="workspace">
-      <HandTracker onHandPosition={handleHandPosition}/>
       <header className="workspace-header">
         <h1>Kinevro</h1>
         <span className="connection-status">Camera not connected</span>
       </header>
 
       <section className="visual-stage">
+        <HandTracker
+        onHandPosition={handleHandPosition}
+        cameraVisible={cameraVisible}
+        cameraOpacity={cameraOpacity}
+        />
         <canvas className="visual-canvas" ref={canvasRef}/>
       </section>
 
       <footer className="workspace-footer">
         <span>Mode: Idle</span>
-        <span>Mouse position: {mousePosition.x}, {mousePosition.y}</span>
         <span>Hand tracking: Inactive</span>
-
-        <CustomSelect
-          label="Mouse interaction"
-          options={['repel', 'attract', 'none']}
-          value={interactionInputBehaviour}
-          onChange={(value) =>
-            setInteractionInputBehaviour(value as MouseBehaviour)
-          }
-        />
 
         <CustomSelect
           label="Boundary behavior"
@@ -323,6 +338,28 @@ useEffect(() => {
             setBoundaryBehaviour(value as BoundaryBehaviour)
           }
         />
+        <label className="camera-control">
+          <input
+            type="checkbox"
+            checked={cameraVisible}
+            onChange={(event) => setCameraVisible(event.target.checked)}
+          />
+          Show camera preview
+        </label>
+
+        <label className="camera-control">
+          Camera opacity
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.05"
+            value={cameraOpacity}
+            onChange={(event) => setCameraOpacity(Number(event.target.value))}
+            disabled={!cameraVisible}
+          />
+          {Math.round(cameraOpacity * 100)}%
+        </label>
       </footer>
     </main>
   )
