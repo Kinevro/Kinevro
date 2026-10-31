@@ -172,6 +172,7 @@ useEffect(() => {
   }
   function applyRepulsion(particle: Particle, frameScale: number, interactionRadius: number) {
     for(const handPosition of handPositionRef.current){
+      if(handPosition.gesture !== 'open-palm')continue;
       const handX = handPosition.x * canvasElement.width;
       const handY = handPosition.y * canvasElement.height;
 
@@ -193,6 +194,8 @@ useEffect(() => {
     interactionRadius: number
   ) {
     for (const handPosition of handPositionRef.current) {
+      if(handPosition.gesture !== 'fist')continue;
+
       const handX = handPosition.x * canvasElement.width;
       const handY = handPosition.y * canvasElement.height;
 
@@ -205,8 +208,34 @@ useEffect(() => {
         const force = (interactionRadius - distance) / interactionRadius;
         const angle = Math.atan2(dy, dx);
 
-        particle.vx += Math.cos(angle) * force * 5 * frameScale;
-        particle.vy += Math.sin(angle) * force * 5 * frameScale;
+        particle.vx += Math.cos(angle) * force * 1.25 * frameScale;
+        particle.vy += Math.sin(angle) * force * 1.25 * frameScale;
+      }
+    }
+  }
+  function applyPinch(
+    particle: Particle,
+    frameScale: number,
+    interactionRadius: number
+  ) {
+    const pinchRadius = interactionRadius / 2;
+    for (const handPosition of handPositionRef.current) {
+      if (handPosition.gesture !== 'pinch') continue;
+
+      const handX = handPosition.x * canvasElement.width;
+      const handY = handPosition.y * canvasElement.height;
+
+      const dx = handX - particle.x;
+      const dy = handY - particle.y;
+
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < pinchRadius && distance > 0) {
+        const force = (pinchRadius - distance) / pinchRadius;
+        const angle = Math.atan2(dy, dx);
+
+        particle.vx += Math.cos(angle) * force * 10 * frameScale;
+        particle.vy += Math.sin(angle) * force * 10 * frameScale;
       }
     }
   }
@@ -214,12 +243,9 @@ useEffect(() => {
     particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
     particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
     particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
-    if (interactionInputBehaviourRef.current === 'repel') {
-      applyRepulsion(particle, frameScale, interactionRadius);
-    }
-    if (interactionInputBehaviourRef.current === 'attract') {
-      applyAttraction(particle, frameScale, interactionRadius);
-    }
+    applyRepulsion(particle, frameScale, interactionRadius);
+    applyAttraction(particle, frameScale, interactionRadius);
+    applyPinch(particle, frameScale, interactionRadius);
     const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
     if (currentSpeed > maxSpeed) {
       const speedScale = maxSpeed / currentSpeed;
