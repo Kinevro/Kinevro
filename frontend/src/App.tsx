@@ -2,6 +2,7 @@ import HandTracker from "./HandTracker.tsx";
 import './App.css'
 import CustomSelect from "./CustomSelect.tsx";
 import {useEffect, useRef, useState, useCallback} from "react";
+import type { HandPosition } from './effects/types';
 
 type Particle = {
   x: number;
@@ -15,14 +16,6 @@ type Particle = {
 };
 
 type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
-
-type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
-
-type HandPosition = {
-  x: number;
-  y: number;
-  gesture: Gesture;
-}
 
 function App() {
   const handleHandPosition = useCallback((positions: HandPosition[]) => {

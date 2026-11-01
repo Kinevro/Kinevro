@@ -1,13 +1,7 @@
+
+import type { Gesture, HandPosition } from './effects/types';
 import { useEffect, useRef } from "react";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
-
-type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
-
-type HandPosition = {
-  x: number;
-  y: number;
-  gesture: Gesture;
-}
 
 type HandTrackerProps = {
   onHandPosition: (positions: HandPosition[]) => void;
