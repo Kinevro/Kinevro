@@ -1,13 +1,7 @@
+
+import type { Gesture, HandPosition } from './effects/types';
 import { useEffect, useRef } from "react";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
-
-type Gesture = 'open-palm' | 'fist' | 'pinch' | 'unknown';
-
-type HandPosition = {
-  x: number;
-  y: number;
-  gesture: Gesture;
-}
 
 type HandTrackerProps = {
   onHandPosition: (positions: HandPosition[]) => void;
@@ -31,17 +25,9 @@ function recognizeGesture(landmarks: { x: number; y: number}[]): Gesture {
     thumbTip.y - indexTip.y
   );
   
-  if (pinchDistance < 0.05) {
-    return 'pinch';
-  }
-
-  if (fingersExtended.every(Boolean)){
-    return 'open-palm';
-  }
-
-  if (fingersExtended.every((extended) => !extended)) {
-    return 'fist';
-  }
+  if (fingersExtended.every(Boolean)) return 'open-palm';
+  if (fingersExtended.every((extended) => !extended)) return 'fist';
+  if (pinchDistance < 0.05) return 'pinch';
 
   return 'unknown';
 }
