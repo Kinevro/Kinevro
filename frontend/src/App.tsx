@@ -233,19 +233,23 @@ useEffect(() => {
 
   }
 
-  function drawHandIndicators() {
+  function drawHandIndicators(interactionRadius: number) {
     handPositionRef.current.forEach(handPosition => {
       const handX = handPosition.x * canvasElement.width;
       const handY = handPosition.y * canvasElement.height;
 
       let indicatorColor = 'grey';
+      let indicatorRadius = 8;
 
       if (handPosition.gesture === 'open-palm') {
         indicatorColor = 'red';
+        indicatorRadius = interactionRadius;
       } else if (handPosition.gesture === 'fist') {
         indicatorColor = 'blue';
+        indicatorRadius = interactionRadius;
       } else if (handPosition.gesture === 'pinch') {
         indicatorColor = 'purple';
+        indicatorRadius = interactionRadius / 2;
       }
 
       drawingContext.beginPath();
@@ -254,7 +258,7 @@ useEffect(() => {
       drawingContext.fill();
 
       drawingContext.beginPath();
-      drawingContext.arc(handX, handY, 15, 0, Math.PI * 2);
+      drawingContext.arc(handX, handY, indicatorRadius, 0, Math.PI * 2);
       drawingContext.strokeStyle = indicatorColor;
       drawingContext.lineWidth = 2;
       drawingContext.stroke();
@@ -293,7 +297,7 @@ useEffect(() => {
       drawingContext.fill()
     })
 
-    drawHandIndicators();
+    drawHandIndicators(interactionRadius);
 
     animationFrameId = requestAnimationFrame(draw)
   }
