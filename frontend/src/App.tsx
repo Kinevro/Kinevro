@@ -1,3 +1,4 @@
+import type { EffectType } from './effects/effectTypes';
 import ParticleEffect from "./effects/ParticleEffect.ts";
 import EffectManager from './effects/EffectManager';
 import HandTracker from "./HandTracker.tsx";
@@ -20,22 +21,26 @@ function App() {
   const [cameraVisible, setCameraVisible] = useState(true);
   const [cameraOpacity, setCameraOpacity] = useState(0.2);
   
-useEffect(() => {
-  boundaryBehaviourRef.current = boundaryBehaviour;
-}, [boundaryBehaviour]);
-useEffect(() => {
-  const canvas = canvasRef.current
-  const stage = canvas?.parentElement
+  const [selectedEffect, setSelectedEffect] = useState<EffectType>('particle-field');
+  const effectManagerRef = useRef<EffectManager | null>(null);
 
-  if (!canvas || !stage) return
-  const canvasElement = canvas
-  const stageElement = stage
-  const effectManager = new EffectManager();
+  useEffect(() => {
+    boundaryBehaviourRef.current = boundaryBehaviour;
+  }, [boundaryBehaviour]);
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const stage = canvas?.parentElement
 
-  effectManager.registerEffect(
-    'particle-field',
-    new ParticleEffect(canvas)
-  );
+    if (!canvas || !stage) return
+    const canvasElement = canvas
+    const stageElement = stage
+    const effectManager = new EffectManager();
+    effectManagerRef.current = effectManager;
+
+    effectManager.registerEffect(
+      'particle-field',
+      new ParticleEffect(canvas)
+    );
 
   effectManager.setActiveEffect('particle-field');
 
@@ -101,8 +106,13 @@ useEffect(() => {
     observer.disconnect()
     cancelAnimationFrame(animationFrameId)
     effectManager.dispose();
+    effectManagerRef.current = null;
   }
 }, [])
+
+    useEffect(() => {
+    effectManagerRef.current?.setActiveEffect(selectedEffect);
+  }, [selectedEffect]);
   return (
     <main className="workspace">
       <header className="workspace-header">
@@ -122,7 +132,12 @@ useEffect(() => {
       <footer className="workspace-footer">
         <span>Mode: Idle</span>
         <span>Hand tracking: Inactive</span>
-
+        <CustomSelect
+          label="Visual effect"
+          options={['particle-field']}
+          value={selectedEffect}
+          onChange={(value) => setSelectedEffect(value as EffectType)}
+        />
         <CustomSelect
           label="Boundary behavior"
           options={['bounce', 'wrap', 'remove']}
