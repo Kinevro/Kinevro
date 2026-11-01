@@ -94,7 +94,7 @@ useEffect(() => {
   return () => {
     observer.disconnect()
     cancelAnimationFrame(animationFrameId)
-
+    effectManager.dispose();
   }
 }, [])
   return (

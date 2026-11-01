@@ -12,6 +12,8 @@ export interface VisualEffect {
 
   draw(): void;
 
+  dispose(): void;
+
   clear(): void;
 
   drawHandIndicators(

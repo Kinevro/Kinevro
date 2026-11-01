@@ -333,6 +333,10 @@ private applyAttraction(
     this.canvas.width = width;
     this.canvas.height = height;
   }
+
+  dispose(): void {
+    // Nothing to clean up yet.
+  }
 }
 
 export default ParticleEffect;

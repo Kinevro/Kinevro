@@ -5,6 +5,8 @@ class EffectManager {
   private activeEffect: VisualEffect | null = null;
 
   setEffect(effect: VisualEffect) {
+    this.activeEffect?.dispose();
+
     this.activeEffect = effect;
     this.activeEffect.initialize();
   }
@@ -42,6 +44,10 @@ class EffectManager {
       handPositions,
       interactionRadius
     );
+  }
+  dispose() {
+    this.activeEffect?.dispose();
+    this.activeEffect = null;
   }
 }
 
