@@ -1,4 +1,5 @@
 import ParticleEffect from "./effects/ParticleEffect.ts";
+import EffectManager from './effects/EffectManager';
 import HandTracker from "./HandTracker.tsx";
 import './App.css'
 import CustomSelect from "./CustomSelect.tsx";
@@ -29,7 +30,8 @@ useEffect(() => {
   if (!canvas || !stage) return
   const canvasElement = canvas
   const stageElement = stage
-  const particleEffect = new ParticleEffect(canvas);
+  const effectManager = new EffectManager();
+  effectManager.setEffect(new ParticleEffect(canvas));
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
@@ -41,7 +43,7 @@ useEffect(() => {
       canvasElement.width !== width ||
       canvasElement.height !== height
     ) {
-      particleEffect.resize(width, height);
+      effectManager.resize(width, height);
     }
     if (animationFrameId === 0) {
       animationFrameId = requestAnimationFrame(draw)
@@ -59,7 +61,7 @@ useEffect(() => {
     const frameScale = deltaTime * 60;
     
 
-    particleEffect.clear();
+    effectManager.clear();
     lastTimestamp = timestamp
     
     const interactionRadius = 0.33 * Math.min(
@@ -67,16 +69,16 @@ useEffect(() => {
       canvasElement.height
     );
 
-    particleEffect.update(
+  effectManager.update(
     handPositionRef.current,
     frameScale,
     interactionRadius,
     boundaryBehaviourRef.current
   );
 
-  particleEffect.drawParticles();
+  effectManager.draw();
 
-  particleEffect.drawHandIndicators(
+  effectManager.drawHandIndicators(
     handPositionRef.current,
     interactionRadius
   );
@@ -87,7 +89,6 @@ useEffect(() => {
   const observer = new ResizeObserver(resizeCanvas)
 
   observer.observe(stage)
-  particleEffect.initialize();
   resizeCanvas();
 
   return () => {

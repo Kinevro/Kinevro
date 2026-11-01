@@ -1,3 +1,4 @@
+import type { VisualEffect } from './VisualEffect';
 import type { HandPosition } from './types';
 
 type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
@@ -13,7 +14,7 @@ type Particle = {
   vy: number;
 };
 
-class ParticleEffect {
+class ParticleEffect implements VisualEffect{
   private particles: Particle[] = [];
 
   private canvas: HTMLCanvasElement;
@@ -53,7 +54,7 @@ class ParticleEffect {
     }
     }
 
-  drawParticles() {
+  draw() {
     this.particles.forEach((particle) => {
         this.context.beginPath();
         this.context.arc(
