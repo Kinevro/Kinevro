@@ -31,8 +31,14 @@ useEffect(() => {
   const canvasElement = canvas
   const stageElement = stage
   const effectManager = new EffectManager();
-  effectManager.setEffect(new ParticleEffect(canvas));
-  
+
+  effectManager.registerEffect(
+    'particle-field',
+    new ParticleEffect(canvas)
+  );
+
+  effectManager.setActiveEffect('particle-field');
+
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
 
