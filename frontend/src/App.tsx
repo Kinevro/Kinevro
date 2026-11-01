@@ -1,19 +1,9 @@
+import ParticleEffect from "./effects/ParticleEffect.ts";
 import HandTracker from "./HandTracker.tsx";
 import './App.css'
 import CustomSelect from "./CustomSelect.tsx";
 import {useEffect, useRef, useState, useCallback} from "react";
 import type { HandPosition } from './effects/types';
-
-type Particle = {
-  x: number;
-  y: number;
-  radius: number;
-  color: string;
-  speed: number;
-  targetDirection: number;
-  vx: number;
-  vy: number;
-};
 
 type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
 
@@ -39,225 +29,24 @@ useEffect(() => {
   if (!canvas || !stage) return
   const canvasElement = canvas
   const stageElement = stage
-  const context = canvas.getContext('2d')
-  if (!context) return
-  const drawingContext = context
+  const particleEffect = new ParticleEffect(canvas);
   
   let animationFrameId: number = 0;
   let lastTimestamp: number = 0;
-  
-  const maxSpeed = 12;
 
   function resizeCanvas() {
-    let scaleX = 1
-    let scaleY = 1
-    const currentWidth = canvasElement.width
-    const currentHeight = canvasElement.height
     const width = stageElement.clientWidth
     const height = stageElement.clientHeight
-    if (currentWidth !== 0 && currentHeight !== 0) {
-      scaleX = width / currentWidth
-      scaleY = height / currentHeight
-    }
-    for (const particle of particles) {
-      particle.x *= scaleX
-      particle.y *= scaleY
-    }
-    if (canvasElement.width !== width) {
-      canvasElement.width = width
-    }
-    if (canvasElement.height !== height) {
-      canvasElement.height = height
+    if (
+      canvasElement.width !== width ||
+      canvasElement.height !== height
+    ) {
+      particleEffect.resize(width, height);
     }
     if (animationFrameId === 0) {
       animationFrameId = requestAnimationFrame(draw)
     }
   }
-  let particles: Particle[] = []
-  function createParticles() {
-    const numParticles = Math.floor(Math.random() * 50 + 100)
-    particles = []
-    for (let i = 0; i < numParticles; i++) {
-      const speed = Math.random() * 6 + 3
-      const targetDirection = Math.random() * Math.PI * 2
-      particles.push({
-        x: Math.random() * canvasElement.width,
-        y: Math.random() * canvasElement.height,
-        radius: Math.random() * 5 + 1,
-        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-        speed: speed,
-        targetDirection: targetDirection,
-        vx: Math.cos(targetDirection) * speed,
-        vy: Math.sin(targetDirection) * speed,
-      })
-    }
-  }
-
-  function handleBoundary(particle: Particle): boolean {
-    switch (boundaryBehaviourRef.current) {
-      case 'bounce':
-        if (particle.x - particle.radius < 0) {
-          particle.x = particle.radius;
-          particle.vx = -particle.vx;
-          particle.targetDirection = Math.PI - particle.targetDirection;
-        } else if (particle.x + particle.radius > canvasElement.width) {
-          particle.x = canvasElement.width - particle.radius;
-          particle.vx = -particle.vx;
-          particle.targetDirection = Math.PI - particle.targetDirection;
-        }
-        if (particle.y - particle.radius < 0) {
-          particle.y = particle.radius;
-          particle.vy = -particle.vy;
-          particle.targetDirection = -particle.targetDirection;
-        } else if (particle.y + particle.radius > canvasElement.height) {
-          particle.y = canvasElement.height - particle.radius;
-          particle.vy = -particle.vy;
-          particle.targetDirection = -particle.targetDirection;
-        }
-        return true;
-      case 'wrap':
-        if (particle.x - particle.radius > canvasElement.width) {
-          particle.x = 0;
-        } else if (particle.x + particle.radius < 0) {
-          particle.x = canvasElement.width;
-        }
-        if (particle.y - particle.radius > canvasElement.height) {
-          particle.y = 0;
-        } else if (particle.y + particle.radius < 0) {
-          particle.y = canvasElement.height;
-        }
-        return true;
-      case 'remove':
-        if (
-          particle.x + particle.radius < 0 ||
-          particle.x - particle.radius > canvasElement.width ||
-          particle.y + particle.radius < 0 ||
-          particle.y - particle.radius > canvasElement.height
-        ) {
-          return false;
-        }
-      return true;
-    }
-  }
-  function applyRepulsion(particle: Particle, frameScale: number, interactionRadius: number) {
-    for(const handPosition of handPositionRef.current){
-      if(handPosition.gesture !== 'open-palm')continue;
-      const handX = handPosition.x * canvasElement.width;
-      const handY = handPosition.y * canvasElement.height;
-
-      const dx = handX - particle.x;
-      const dy = handY - particle.y;
-
-      const distance = Math.sqrt(dx * dx + dy * dy)
-      if (distance < interactionRadius && distance > 0) {
-        const force = (interactionRadius - distance) / interactionRadius
-        const angle = Math.atan2(dy, dx)
-        particle.vx -= Math.cos(angle) * force * 5 * frameScale
-        particle.vy -= Math.sin(angle) * force * 5 * frameScale
-      }
-    }
-  }
-  function applyAttraction(
-    particle: Particle,
-    frameScale: number,
-    interactionRadius: number
-  ) {
-    for (const handPosition of handPositionRef.current) {
-      if(handPosition.gesture !== 'fist')continue;
-
-      const handX = handPosition.x * canvasElement.width;
-      const handY = handPosition.y * canvasElement.height;
-
-      const dx = handX - particle.x;
-      const dy = handY - particle.y;
-
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < interactionRadius && distance > 0) {
-        const force = (interactionRadius - distance) / interactionRadius;
-        const angle = Math.atan2(dy, dx);
-
-        particle.vx += Math.cos(angle) * force * 1.25 * frameScale;
-        particle.vy += Math.sin(angle) * force * 1.25 * frameScale;
-      }
-    }
-  }
-  function applyPinch(
-    particle: Particle,
-    frameScale: number,
-    interactionRadius: number
-  ) {
-    const pinchRadius = interactionRadius / 2;
-    for (const handPosition of handPositionRef.current) {
-      if (handPosition.gesture !== 'pinch') continue;
-
-      const handX = handPosition.x * canvasElement.width;
-      const handY = handPosition.y * canvasElement.height;
-
-      const dx = handX - particle.x;
-      const dy = handY - particle.y;
-
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < pinchRadius && distance > 0) {
-        const force = (pinchRadius - distance) / pinchRadius;
-        const angle = Math.atan2(dy, dx);
-
-        particle.vx += Math.cos(angle) * force * 10 * frameScale;
-        particle.vy += Math.sin(angle) * force * 10 * frameScale;
-      }
-    }
-  }
-  function updateParticles(particle: Particle, frameScale: number, interactionRadius: number) {
-    particle.targetDirection += (Math.random() - 0.5) * 0.40 * frameScale;
-    particle.vx += (Math.cos(particle.targetDirection) * particle.speed - particle.vx) * 0.05 * frameScale;
-    particle.vy += (Math.sin(particle.targetDirection) * particle.speed - particle.vy) * 0.05 * frameScale;
-    applyRepulsion(particle, frameScale, interactionRadius);
-    applyAttraction(particle, frameScale, interactionRadius);
-    applyPinch(particle, frameScale, interactionRadius);
-    const currentSpeed = Math.sqrt(particle.vx * particle.vx + particle.vy * particle.vy);
-    if (currentSpeed > maxSpeed) {
-      const speedScale = maxSpeed / currentSpeed;
-      particle.vx *= speedScale;
-      particle.vy *= speedScale;
-    }
-    particle.x += particle.vx * frameScale
-    particle.y += particle.vy * frameScale
-
-  }
-
-  function drawHandIndicators(interactionRadius: number) {
-    handPositionRef.current.forEach(handPosition => {
-      const handX = handPosition.x * canvasElement.width;
-      const handY = handPosition.y * canvasElement.height;
-
-      let indicatorColor = 'grey';
-      let indicatorRadius = 8;
-
-      if (handPosition.gesture === 'open-palm') {
-        indicatorColor = 'red';
-        indicatorRadius = interactionRadius;
-      } else if (handPosition.gesture === 'fist') {
-        indicatorColor = 'blue';
-        indicatorRadius = interactionRadius;
-      } else if (handPosition.gesture === 'pinch') {
-        indicatorColor = 'purple';
-        indicatorRadius = interactionRadius / 2;
-      }
-
-      drawingContext.beginPath();
-      drawingContext.arc(handX, handY, 8, 0, Math.PI * 2);
-      drawingContext.fillStyle = indicatorColor;
-      drawingContext.fill();
-
-      drawingContext.beginPath();
-      drawingContext.arc(handX, handY, indicatorRadius, 0, Math.PI * 2);
-      drawingContext.strokeStyle = indicatorColor;
-      drawingContext.lineWidth = 2;
-      drawingContext.stroke();
-    });
-  }
-
   function draw(timestamp: number = 0) {
     animationFrameId = 0
     let deltaTime: number
@@ -270,7 +59,7 @@ useEffect(() => {
     const frameScale = deltaTime * 60;
     
 
-    drawingContext.clearRect(0, 0, canvasElement.width, canvasElement.height)
+    particleEffect.clear();
     lastTimestamp = timestamp
     
     const interactionRadius = 0.33 * Math.min(
@@ -278,19 +67,19 @@ useEffect(() => {
       canvasElement.height
     );
 
-    particles = particles.filter(particle => {
-      updateParticles(particle, frameScale, interactionRadius)
-      return handleBoundary(particle)
-    })
+    particleEffect.update(
+    handPositionRef.current,
+    frameScale,
+    interactionRadius,
+    boundaryBehaviourRef.current
+  );
 
-    particles.forEach(particle => {
-      drawingContext.beginPath()
-      drawingContext.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2)
-      drawingContext.fillStyle = particle.color
-      drawingContext.fill()
-    })
+  particleEffect.drawParticles();
 
-    drawHandIndicators(interactionRadius);
+  particleEffect.drawHandIndicators(
+    handPositionRef.current,
+    interactionRadius
+  );
 
     animationFrameId = requestAnimationFrame(draw)
   }
@@ -298,8 +87,8 @@ useEffect(() => {
   const observer = new ResizeObserver(resizeCanvas)
 
   observer.observe(stage)
-  createParticles()
-  resizeCanvas()
+  particleEffect.initialize();
+  resizeCanvas();
 
   return () => {
     observer.disconnect()
