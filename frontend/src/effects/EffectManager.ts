@@ -1,15 +1,10 @@
+import type { EffectType } from './effectTypes';
 import type { VisualEffect } from './VisualEffect';
 import type { HandPosition } from './types';
 
 class EffectManager {
   private activeEffect: VisualEffect | null = null;
-
-  setEffect(effect: VisualEffect) {
-    this.activeEffect?.dispose();
-
-    this.activeEffect = effect;
-    this.activeEffect.initialize();
-  }
+  private effects = new Map<EffectType, VisualEffect>();
 
   update(
     handPositions: HandPosition[],
@@ -48,6 +43,34 @@ class EffectManager {
   dispose() {
     this.activeEffect?.dispose();
     this.activeEffect = null;
+  }
+  registerEffect(type: EffectType, effect: VisualEffect) {
+    this.effects.set(type, effect);
+  }
+  setActiveEffect(type: EffectType) {
+    const effect = this.effects.get(type);
+
+    if (!effect) {
+      console.error(`Effect "${type}" is not registered.`);
+      return;
+    }
+
+    if (this.activeEffect === effect) {
+      return;
+    }
+
+    this.activeEffect?.dispose();
+    this.activeEffect = effect;
+    this.activeEffect.initialize();
+  }
+  getActiveEffectType(): EffectType | null {
+    for (const [type, effect] of this.effects) {
+      if (effect === this.activeEffect) {
+        return type;
+      }
+    }
+
+    return null;
   }
 }
 
