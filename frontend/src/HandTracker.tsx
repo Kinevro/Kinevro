@@ -1,5 +1,5 @@
 
-import type { Gesture, HandPosition } from './effects/types';
+import type { Gesture, HandPosition, FingerPosition } from './effects/types';
 import { useEffect, useRef } from "react";
 import { FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 
@@ -99,14 +99,64 @@ function HandTracker({
         return;
       }
       const results = handLandmarker.detectForVideo(video, performance.now());
-      const positions = results.landmarks.map((landmarks) =>{
-        const indexTip = landmarks[8];
 
-        return {
-          x: 1-indexTip.x,
-          y: indexTip.y,
-          gesture: recognizeGesture(landmarks)
-        };
+      const videoWidth = video.videoWidth;
+      const videoHeight = video.videoHeight;
+
+      const displayWidth = video.clientWidth;
+      const displayHeight = video.clientHeight;
+
+      const scale = Math.max(
+          displayWidth / videoWidth,
+          displayHeight / videoHeight
+      );
+
+      const offsetX = (videoWidth * scale - displayWidth) / 2;
+      const offsetY = (videoHeight * scale - displayHeight) / 2;
+
+      const mapLandmark = (landmark: { x: number; y: number }) => ({
+          x: 1 - (
+              (landmark.x * videoWidth * scale - offsetX) / displayWidth
+          ),
+          y: (
+              landmark.y * videoHeight * scale - offsetY
+          ) / displayHeight,
+      });
+
+      const positions = results.landmarks.map((landmarks) => {
+          const indexTip = mapLandmark(landmarks[8]);
+          const wrist = mapLandmark(landmarks[0]);
+
+          const fingerLandmarkPairs = [
+              [2, 4],
+              [5, 8],
+              [9, 12],
+              [13, 16],
+              [17, 20],
+          ];
+
+          const fingers: FingerPosition[] = fingerLandmarkPairs.map(
+              ([baseIndex, tipIndex]) => {
+                  const base = mapLandmark(landmarks[baseIndex]);
+                  const tip = mapLandmark(landmarks[tipIndex]);
+
+                  return {
+                      baseX: base.x,
+                      baseY: base.y,
+                      tipX: tip.x,
+                      tipY: tip.y,
+                  };
+              }
+          );
+
+          return {
+              x: indexTip.x,
+              y: indexTip.y,
+              wristX: wrist.x,
+              wristY: wrist.y,
+              fingers,
+              gesture: recognizeGesture(landmarks),
+          };
       });
       positions.forEach((position, index) => {
         const previousGesture = previousGesturesRef.current[index];
