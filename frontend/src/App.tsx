@@ -7,6 +7,7 @@ import CustomSelect from "./CustomSelect.tsx";
 import {useEffect, useRef, useState, useCallback} from "react";
 import type { HandPosition } from './effects/types';
 import BallpitEffect from './effects/BallpitEffect';
+import ForceLightningEffect from './effects/ForceLightningEffect';
 
 type BoundaryBehaviour = 'bounce' | 'wrap' | 'remove';
 
@@ -46,6 +47,11 @@ function App() {
     effectManager.registerEffect(
       'ballpit',
       new BallpitEffect(canvas)
+    );
+
+    effectManager.registerEffect(
+      'force-lightning',
+      new ForceLightningEffect(canvas)
     );
 
   effectManager.setActiveEffect('particle-field');
@@ -140,7 +146,7 @@ function App() {
         <span>Hand tracking: Inactive</span>
         <CustomSelect
           label="Visual effect"
-          options={['particle-field', 'ballpit']}
+          options={['particle-field', 'ballpit', 'force-lightning']}
           value={selectedEffect}
           onChange={(value) => setSelectedEffect(value as EffectType)}
         />
